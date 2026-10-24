@@ -68,9 +68,7 @@ fi
 
 # Install Deps if needed
 sudo apt-get update
-sudo apt-get install -y build-essential python-dev python-pip
-sudo pip install RPi.GPIO
-sudo apt-get install -y python-imaging python-smbus
+sudo apt-get install -y python3-smbus i2c-tools
 
 
 echo

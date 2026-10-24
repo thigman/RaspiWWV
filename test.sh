@@ -1,14 +1,11 @@
 #!/bin/bash
 #
-# Test the RTC, OLED and Audio
+# Test the RTC and Audio
 #
 #
 
 
-echo "Testing OLED DISPLAY...."
-python ./testOLED.py
-echo "You should see a test message displayed"
-sleep 2
+# OLED test is optional: run  python3 ./testOLED.py  if you installed the OLED (installOLED.sh)
 
 echo
 echo "Testing RTC..."

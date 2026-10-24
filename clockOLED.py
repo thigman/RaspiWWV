@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Uses piOLED 128x32 I2C Display
 # https://www.adafruit.com/product/3527
