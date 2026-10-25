@@ -32,6 +32,10 @@ INSTRUCTIONS:
 
 Installs the reboot cron and startup file. (This assumes installed to /home/pi on Raspberry.)
 
+Requires Python 3 (default on current Raspberry Pi OS). Install with `sh installWWV.sh`.
+
+The OLED display is optional and disabled by default (an HDMI display is assumed). `runWWV.sh` only starts `wwv_simulator.py`. To use an OLED, run `sh installOLED.sh` and add `python3 clockOLED.py &` to `runWWV.sh`.
+
 Manually run WWV Simulator using:
 
     $ sh runWWV.sh
