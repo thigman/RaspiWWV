@@ -7,7 +7,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from PIL import ImageFont
+from PIL import Image, ImageChops, ImageDraw, ImageFont
 from luma.core.interface.serial import spi
 from luma.core.render import canvas
 from luma.oled.device import ssd1309
@@ -26,12 +26,30 @@ time_font = ImageFont.truetype(
     str(Path(__file__).parent / "fonts" / "VCR_font.ttf"), 16
 )
 
+art = Image.new("1", (128, 24))
+art_draw = ImageDraw.Draw(art)
+art_draw.polygon([(2, 6), (30, 6), (24, 11), (40, 11),
+                  (11, 19), (17, 14), (2, 14)], fill=1)
+art_draw.polygon([(88, 6), (116, 6), (110, 11), (126, 11),
+                  (97, 19), (103, 14), (88, 14)], fill=1)
+lettering = Image.new("1", (50, 24))
+ImageDraw.Draw(lettering).text((5, 0), "WWV", font=ImageFont.truetype(
+    str(Path(__file__).parent / "fonts" / "VCR_font.ttf"), 20
+), fill=1, stroke_width=1)
+lettering = lettering.rotate(10)
+lettering = lettering.crop(lettering.getbbox())
+art.paste(lettering, ((128 - lettering.width) // 2, (24 - lettering.height) // 2))
+dither = Image.new("1", art.size)
+dither.putdata([(x + y) % 2 == 0 for y in range(24) for x in range(128)])
+art = ImageChops.logical_and(art, dither)
+
 while True:
     now = datetime.now(timezone.utc)
     with canvas(device) as draw:
         draw.text((0, 0), now.strftime("%Y-%m-%d"), font=font, fill="white")
         draw.text((0, 16), now.strftime("%H:%M:%S UTC"), font=time_font, fill="white")
         bar_top = device.height - 6
+        draw.bitmap(((device.width - art.width) // 2, bar_top - art.height), art, fill="white")
         draw.rectangle((0, bar_top, device.width - 1, device.height - 1), outline="white")
         elapsed = now.second + now.microsecond / 1_000_000
         filled = int((device.width - 2) * elapsed / 60)
@@ -40,6 +58,7 @@ while True:
 
         clock_x = max(12, min(device.width - 13, filled))
         clock_y = bar_top - 24
+        draw.rectangle((clock_x - 12, clock_y, clock_x + 12, bar_top - 1), fill="black")
         draw.polygon(
             [(clock_x - 12, clock_y + 5), (clock_x - 8, clock_y + 1),
              (clock_x - 5, clock_y + 1), (clock_x - 3, clock_y + 3),
