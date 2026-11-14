@@ -50,7 +50,6 @@ StartLimitIntervalSec=0
 [Service]
 Type=simple
 User=$user
-WorkingDirectory="$repo"
 ExecStart="$python" -u "$repo/$script"
 Restart=always
 RestartSec=10
