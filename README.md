@@ -38,7 +38,8 @@ The OLED display is optional. `clockOLED.py` uses an SSD1309 SPI display with
 SPI port 0, device 0, GPIO 25 for DC, and GPIO 27 for reset (BCM pin numbers).
 Enable SPI and use a Python environment with `luma.oled`, Pillow, SPI and GPIO
 support installed. Test the clock with `python3 clockOLED.py` in that environment.
-The bar at the bottom fills over each UTC minute and resets at the next minute.
+The bar at the bottom fills over each UTC minute, with a smiling clock moving
+along its leading edge; both reset at the next minute.
 `runWWV.sh` starts it alongside the simulator using the system `python3`, so
 that interpreter must have the OLED dependencies too.
 

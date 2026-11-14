@@ -37,4 +37,21 @@ while True:
         filled = int((device.width - 2) * elapsed / 60)
         if filled:
             draw.rectangle((1, bar_top + 1, filled, device.height - 2), fill="white")
+
+        clock_x = max(8, min(device.width - 9, filled))
+        clock_y = bar_top - 9
+        draw.ellipse(
+            (clock_x - 8, clock_y - 8, clock_x + 8, clock_y + 8),
+            outline="white",
+        )
+        draw.line(
+            [(clock_x, clock_y - 6), (clock_x, clock_y - 3), (clock_x + 3, clock_y - 3)],
+            fill="white",
+        )
+        draw.point([(clock_x - 3, clock_y), (clock_x + 3, clock_y)], fill="white")
+        draw.line(
+            [(clock_x - 3, clock_y + 3), (clock_x - 2, clock_y + 4),
+             (clock_x + 2, clock_y + 4), (clock_x + 3, clock_y + 3)],
+            fill="white",
+        )
     time.sleep(0.1)
