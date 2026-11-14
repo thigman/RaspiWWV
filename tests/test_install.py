@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -52,6 +53,17 @@ if [ "$1" = install ]; then cp "$4" "$FAKE_OUTPUT/$(basename "$5")"; fi
             self.assertIn("StartLimitIntervalSec=0", unit)
             self.assertIn(f"systemctl restart raspiwwv-{name}.service",
                           (self.output / "commands").read_text())
+
+    @unittest.skipUnless(shutil.which("systemd-analyze"), "systemd-analyze is not installed")
+    def test_generated_units_are_accepted_by_systemd(self):
+        result = self.install("--oled")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for name in ("audio", "oled"):
+            result = subprocess.run(
+                ["systemd-analyze", "verify", str(self.output / f"raspiwwv-{name}.service")],
+                capture_output=True, text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_legacy_reboot_job_stops_install_before_sudo(self):
         self.env["FAKE_CRONTAB"] = "@reboot /bin/bash ./runWWV.sh"
