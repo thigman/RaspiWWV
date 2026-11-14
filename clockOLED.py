@@ -38,20 +38,30 @@ while True:
         if filled:
             draw.rectangle((1, bar_top + 1, filled, device.height - 2), fill="white")
 
-        clock_x = max(8, min(device.width - 9, filled))
-        clock_y = bar_top - 9
-        draw.ellipse(
-            (clock_x - 8, clock_y - 8, clock_x + 8, clock_y + 8),
-            outline="white",
-        )
-        draw.line(
-            [(clock_x, clock_y - 6), (clock_x, clock_y - 3), (clock_x + 3, clock_y - 3)],
+        clock_x = max(12, min(device.width - 13, filled))
+        clock_y = bar_top - 24
+        draw.polygon(
+            [(clock_x - 12, clock_y + 5), (clock_x - 8, clock_y + 1),
+             (clock_x - 5, clock_y + 1), (clock_x - 3, clock_y + 3),
+             (clock_x - 9, clock_y + 9)],
             fill="white",
         )
-        draw.point([(clock_x - 3, clock_y), (clock_x + 3, clock_y)], fill="white")
-        draw.line(
-            [(clock_x - 3, clock_y + 3), (clock_x - 2, clock_y + 4),
-             (clock_x + 2, clock_y + 4), (clock_x + 3, clock_y + 3)],
+        draw.polygon(
+            [(clock_x + 12, clock_y + 5), (clock_x + 8, clock_y + 1),
+             (clock_x + 5, clock_y + 1), (clock_x + 3, clock_y + 3),
+             (clock_x + 9, clock_y + 9)],
             fill="white",
+        )
+        draw.line((clock_x, clock_y + 1, clock_x, clock_y + 5), fill="white")
+        draw.line((clock_x - 2, clock_y + 1, clock_x + 2, clock_y + 1), fill="white")
+        draw.line((clock_x - 7, clock_y + 20, clock_x - 9, clock_y + 23), fill="white")
+        draw.line((clock_x + 7, clock_y + 20, clock_x + 9, clock_y + 23), fill="white")
+        draw.ellipse((clock_x - 9, clock_y + 5, clock_x + 9, clock_y + 23), fill="white")
+        draw.ellipse((clock_x - 5, clock_y + 11, clock_x - 3, clock_y + 13), fill="black")
+        draw.ellipse((clock_x + 3, clock_y + 11, clock_x + 5, clock_y + 13), fill="black")
+        draw.line(
+            [(clock_x - 3, clock_y + 16), (clock_x - 2, clock_y + 18),
+             (clock_x + 2, clock_y + 18), (clock_x + 3, clock_y + 16)],
+            fill="black",
         )
     time.sleep(0.1)
