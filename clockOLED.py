@@ -32,13 +32,10 @@ art_draw.polygon([(2, 6), (30, 6), (24, 11), (40, 11),
                   (11, 19), (17, 14), (2, 14)], fill=1)
 art_draw.polygon([(88, 6), (116, 6), (110, 11), (126, 11),
                   (97, 19), (103, 14), (88, 14)], fill=1)
-lettering = Image.new("1", (50, 24))
-ImageDraw.Draw(lettering).text((5, 0), "WWV", font=ImageFont.truetype(
-    str(Path(__file__).parent / "fonts" / "VCR_font.ttf"), 20
-), fill=1, stroke_width=1)
-lettering = lettering.rotate(10)
-lettering = lettering.crop(lettering.getbbox())
-art.paste(lettering, ((128 - lettering.width) // 2, (24 - lettering.height) // 2))
+for x in (40, 56):
+    art_draw.line([(x + 3, 3), (x + 2, 20), (x + 7, 10),
+                   (x + 9, 20), (x + 14, 3)], fill=1, width=3)
+art_draw.line([(74, 3), (75, 20), (85, 3)], fill=1, width=3)
 dither = Image.new("1", art.size)
 dither.putdata([(x + y) % 2 == 0 for y in range(24) for x in range(128)])
 art = ImageChops.logical_and(art, dither)
