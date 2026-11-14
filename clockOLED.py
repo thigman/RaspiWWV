@@ -31,4 +31,10 @@ while True:
     with canvas(device) as draw:
         draw.text((0, 0), now.strftime("%Y-%m-%d"), font=font, fill="white")
         draw.text((0, 16), now.strftime("%H:%M:%S UTC"), font=time_font, fill="white")
+        bar_top = device.height - 6
+        draw.rectangle((0, bar_top, device.width - 1, device.height - 1), outline="white")
+        elapsed = now.second + now.microsecond / 1_000_000
+        filled = int((device.width - 2) * elapsed / 60)
+        if filled:
+            draw.rectangle((1, bar_top + 1, filled, device.height - 2), fill="white")
     time.sleep(0.1)
