@@ -34,7 +34,15 @@ Installs the reboot cron and startup file. (This assumes installed to /home/pi o
 
 Requires Python 3 (default on current Raspberry Pi OS). Install with `sh installWWV.sh`.
 
-The OLED display is optional. To use it, run `sh installOLED.sh`; `runWWV.sh` starts `clockOLED.py` alongside the simulator.
+The OLED display is optional. `clockOLED.py` uses an SSD1309 SPI display with
+SPI port 0, device 0, GPIO 25 for DC, and GPIO 27 for reset (BCM pin numbers).
+Enable SPI and use a Python environment with `luma.oled`, Pillow, SPI and GPIO
+support installed. Test the clock with `python3 clockOLED.py` in that environment.
+`runWWV.sh` starts it alongside the simulator using the system `python3`, so
+that interpreter must have the OLED dependencies too.
+
+`installOLED.sh` and `testOLED.py` are for the original SSD1306 I2C display;
+they do not set up or test the SSD1309 SPI clock.
 
 Manually run WWV Simulator using:
 
