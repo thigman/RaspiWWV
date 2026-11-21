@@ -44,7 +44,7 @@ class ClockOLEDTests(unittest.TestCase):
              patch.object(clockOLED, "draw_small_text", wraps=clockOLED.draw_small_text) as draw_text:
             clockOLED.render_clock(local_time)
         self.assertEqual(led.call_args.args[1], "00:34:56")
-        self.assertEqual(draw_text.call_args_list[-1].args[1], "2026-01-01")
+        self.assertEqual(draw_text.call_args_list[-1].args[1:4], ("2026-01-01", 0, 52))
 
     def test_utc_digits_update_with_seconds(self):
         first = clockOLED.render_clock(
@@ -56,6 +56,20 @@ class ClockOLEDTests(unittest.TestCase):
         self.assertIsNotNone(ImageChops.difference(
             first.crop((25, 18, 128, 43)), second.crop((25, 18, 128, 43))
         ).getbbox())
+
+    def test_bolt_flashes_each_second_without_changing_other_art(self):
+        now = datetime(2026, 1, 1, 12, 34, 56, tzinfo=timezone.utc)
+        on = clockOLED.render_clock(now)
+        off = clockOLED.render_clock(now.replace(microsecond=500_000))
+        next_on = clockOLED.render_clock(now + timedelta(seconds=1))
+        self.assertIsNotNone(on.crop((68, 52, 85, 57)).getbbox())
+        self.assertIsNone(off.crop((68, 52, 85, 57)).getbbox())
+        self.assertEqual(on.crop((68, 52, 85, 57)).tobytes(),
+                         next_on.crop((68, 52, 85, 57)).tobytes())
+        for box in ((0, 52, 39, 57), (50, 52, 57, 57), (106, 52, 121, 57)):
+            self.assertIsNotNone(on.crop(box).getbbox())
+            self.assertEqual(on.crop(box).tobytes(), off.crop(box).tobytes())
+
 
 if __name__ == "__main__":
     unittest.main()
