@@ -94,7 +94,25 @@ def render_clock(now):
     draw_small_text(draw, "UTC:", 3, 28)
     draw_led_time(draw, utc.strftime("%H:%M:%S"), 25, 18)
     date = utc.strftime("%Y-%m-%d")
-    draw_small_text(draw, date, (128 - (len(date) * 4 - 1)) // 2, 52)
+    draw_small_text(draw, date, 0, 52)
+
+    draw.line((53, 52, 53, 54), fill="white")
+    draw.line((53, 54, 51, 56), fill="white")
+    draw.line((53, 54, 55, 56), fill="white")
+    draw.point((50, 52), fill="white")
+    draw.point((56, 52), fill="white")
+
+    if utc.microsecond < 500_000:
+        draw.polygon(
+            [(68, 54), (77, 52), (75, 54), (84, 52),
+             (80, 56), (81, 54), (73, 56), (74, 54)],
+            fill="white",
+        )
+
+    draw.rectangle((106, 52, 120, 56), outline="white")
+    draw.rectangle((108, 53, 110, 55), outline="white")
+    draw.line((114, 53, 118, 53), fill="white")
+    draw.point((116, 54), fill="white")
     return image
 
 

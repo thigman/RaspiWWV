@@ -44,6 +44,8 @@ The journal retains errors rather than discarding them.
 install `luma.oled`, Pillow, SPI and GPIO dependencies in the Python environment.
 The display shows Colorado and California local time (including daylight
 saving changes) above a 24-hour UTC clock with seconds and the UTC date.
+Beside the date, an antenna and radio are connected by a bolt that flashes
+once per second.
 The system must have the IANA time zone database installed (the `tzdata`
 package on Raspberry Pi OS).
 For example, on Raspberry Pi OS, enable SPI in `sudo raspi-config` under
