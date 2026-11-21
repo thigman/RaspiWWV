@@ -27,7 +27,7 @@ def render_clock(now):
     image = Image.new("1", (128, 64), 0)
     draw = ImageDraw.Draw(image)
     small_font = ImageFont.load_default()
-    utc_font = ImageFont.truetype(VCR_FONT, 16)
+    utc_font = ImageFont.truetype(VCR_FONT, 14)
 
     draw.rectangle((1, 1, 62, 13), outline="white")
     draw.rectangle((65, 1, 126, 13), outline="white")
@@ -37,15 +37,21 @@ def render_clock(now):
     draw.text((67, 7), "Colorado", font=small_font, fill="white")
 
     draw.rectangle((1, 15, 126, 47), outline="white")
-    utc_time = now.astimezone(timezone.utc).strftime("%H:%M:%S")
+    utc_time = now.astimezone(timezone.utc).strftime("UTC: %H:%M:%S")
     draw_centered_text(draw, (2, 16, 125, 46), utc_time, utc_font)
 
     draw.rectangle((1, 49, 20, 62), outline="white")
     draw.rectangle((107, 49, 126, 62), outline="white")
 
-    draw.text((3, 50), "CART", font=small_font, fill="white")
-    draw.text((3, 54), "RAD", font=small_font, fill="white")
-    draw.text((3, 58), "TX", font=small_font, fill="white")
+    draw.line((10, 50, 10, 53), fill="white")
+    draw.line((10, 53, 6, 61), fill="white")
+    draw.line((10, 53, 14, 61), fill="white")
+    draw.line((8, 57, 12, 57), fill="white")
+    draw.line((7, 61, 13, 61), fill="white")
+    draw.line((8, 57, 13, 61), fill="white")
+    draw.line((12, 57, 7, 61), fill="white")
+    draw.line((3, 50, 7, 53, 5, 53, 7, 55), fill="white")
+    draw.line((17, 50, 13, 53, 15, 53, 13, 55), fill="white")
 
     draw.text((109, 50), "CART", font=small_font, fill="white")
     draw.text((109, 54), "RAD", font=small_font, fill="white")

@@ -42,7 +42,7 @@ The journal retains errors rather than discarding them.
 `clockOLED.py` uses SPI port 0, device 0, GPIO 25 for DC and GPIO 27 for reset
 (BCM numbering). Enable SPI, ensure the Pi user has access to SPI and GPIO, and
 install `luma.oled`, Pillow, SPI and GPIO dependencies in the Python environment.
-The center of the display shows UTC in 24-hour `HH:MM:SS` format.
+The center of the display shows UTC in 24-hour `UTC: HH:MM:SS` format.
 For example, on Raspberry Pi OS, enable SPI in `sudo raspi-config` under
 Interface Options, then create a virtual environment:
 
