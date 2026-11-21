@@ -1,6 +1,7 @@
+import subprocess
 import unittest
 from datetime import datetime, timedelta, timezone
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from PIL import ImageChops
 
@@ -80,6 +81,59 @@ class ClockOLEDTests(unittest.TestCase):
         for x in (42, 45, 48, 50, 53, 56):
             self.assertFalse(image.getpixel((x, 50)))
         self.assertTrue(all(image.getpixel((49, y)) for y in range(49, 63)))
+
+
+class NTPSyncAlertTests(unittest.TestCase):
+    def test_alert_lasts_15_seconds_and_only_repeats_after_sync_loss(self):
+        alert = clockOLED.SyncAlert()
+        alert.update(False, 10)
+        self.assertFalse(alert.visible(10))
+        alert.update(True, 20)
+        self.assertTrue(alert.visible(20))
+        self.assertTrue(alert.visible(34.999))
+        alert.update(True, 34)
+        self.assertFalse(alert.visible(35))
+        alert.update(False, 40)
+        alert.update(True, 45)
+        self.assertTrue(alert.visible(45))
+        self.assertFalse(alert.visible(60))
+
+    def test_already_synchronized_at_startup_shows_alert(self):
+        alert = clockOLED.SyncAlert()
+        alert.update(True, 100)
+        self.assertTrue(alert.visible(100))
+        self.assertFalse(alert.visible(115))
+
+    def test_ntp_status_requires_explicit_yes(self):
+        for output, expected in (("yes\n", True), ("no\n", False)):
+            with self.subTest(output=output), patch.object(
+                clockOLED.subprocess, "run", return_value=Mock(stdout=output)
+            ) as run:
+                self.assertEqual(clockOLED.ntp_synchronized(), expected)
+                self.assertEqual(run.call_args.args[0],
+                                 ["timedatectl", "show", "--property=NTPSynchronized", "--value"])
+        with patch.object(clockOLED.subprocess, "run", return_value=Mock(stdout="")):
+            with self.assertRaises(ValueError):
+                clockOLED.ntp_synchronized()
+
+    def test_monitor_logs_errors_and_resumes_without_false_alerts(self):
+        alert = clockOLED.SyncAlert()
+        error = subprocess.TimeoutExpired("timedatectl", 3)
+        with patch.object(clockOLED, "ntp_synchronized",
+                          side_effect=[True, error, True]), \
+             patch.object(clockOLED.time, "monotonic", side_effect=[10, 30]), \
+             patch.object(clockOLED.time, "sleep",
+                          side_effect=[None, None, StopIteration]), \
+             self.assertLogs(level="WARNING"):
+            with self.assertRaises(StopIteration):
+                clockOLED.monitor_ntp(alert)
+        self.assertFalse(alert.visible(30))
+
+    def test_alert_screen_is_drawn_for_oled(self):
+        image = clockOLED.render_sync_alert()
+        self.assertEqual(image.size, (128, 64))
+        self.assertEqual(image.mode, "1")
+        self.assertIsNotNone(image.crop((1, 1, 127, 63)).getbbox())
 
 
 if __name__ == "__main__":

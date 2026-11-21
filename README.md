@@ -81,6 +81,11 @@ The display shows Colorado and California local time (including daylight
 saving changes) above a 24-hour UTC clock with seconds and the UTC date.
 Beside the date, an antenna and radio are connected by a bolt that flashes
 once per second.
+When the system reports NTP synchronization, the OLED shows a large
+`NTP SYNCED` alert for 15 seconds, then returns to the clock. It also shows
+the alert at OLED startup if the system is already synchronized, and again
+if synchronization is lost and later regained. Status is checked every two
+seconds independently of the RTC.
 The system must have the IANA time zone database installed (the `tzdata`
 package on Raspberry Pi OS).
 For example, on Raspberry Pi OS, enable SPI in `sudo raspi-config` under
