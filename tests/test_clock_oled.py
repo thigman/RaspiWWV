@@ -62,11 +62,11 @@ class ClockOLEDTests(unittest.TestCase):
         on = clockOLED.render_clock(now)
         off = clockOLED.render_clock(now.replace(microsecond=500_000))
         next_on = clockOLED.render_clock(now + timedelta(seconds=1))
-        self.assertIsNotNone(on.crop((68, 52, 85, 57)).getbbox())
-        self.assertIsNone(off.crop((68, 52, 85, 57)).getbbox())
-        self.assertEqual(on.crop((68, 52, 85, 57)).tobytes(),
-                         next_on.crop((68, 52, 85, 57)).tobytes())
-        for box in ((0, 52, 39, 57), (50, 52, 57, 57), (106, 52, 121, 57)):
+        bolt = (60, 45, 94, 63)
+        self.assertIsNotNone(on.crop(bolt).getbbox())
+        self.assertIsNone(off.crop(bolt).getbbox())
+        self.assertEqual(on.crop(bolt).tobytes(), next_on.crop(bolt).tobytes())
+        for box in ((0, 52, 39, 57), (42, 45, 57, 63), (98, 45, 128, 63)):
             self.assertIsNotNone(on.crop(box).getbbox())
             self.assertEqual(on.crop(box).tobytes(), off.crop(box).tobytes())
 
