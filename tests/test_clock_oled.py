@@ -65,6 +65,7 @@ class ClockOLEDTests(unittest.TestCase):
         bolt = (60, 45, 94, 63)
         self.assertIsNotNone(on.crop(bolt).getbbox())
         self.assertIsNone(off.crop(bolt).getbbox())
+        self.assertEqual(ImageChops.difference(on, off).getbbox(), (63, 50, 91, 62))
         self.assertEqual(on.crop(bolt).tobytes(), next_on.crop(bolt).tobytes())
         for box in ((0, 52, 39, 57), (42, 45, 57, 63), (98, 45, 128, 63)):
             self.assertIsNotNone(on.crop(box).getbbox())
