@@ -7,77 +7,86 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from PIL import Image, ImageChops, ImageDraw, ImageFont
-from luma.core.interface.serial import spi
-from luma.core.render import canvas
-from luma.oled.device import ssd1309
+from PIL import Image, ImageDraw, ImageFont
 
-serial = spi(
-    port=0,
-    device=0,
-    gpio_DC=25,
-    gpio_RST=27,
-    bus_speed_hz=8000000,
-)
-device = ssd1309(serial)
+FONT_DIR = Path(__file__).parent / "fonts"
+VCR_FONT = str(FONT_DIR / "VCR_font.ttf")
 
-font = ImageFont.load_default()
-time_font = ImageFont.truetype(
-    str(Path(__file__).parent / "fonts" / "VCR_font.ttf"), 16
-)
 
-art = Image.new("1", (128, 24))
-art_draw = ImageDraw.Draw(art)
-art_draw.polygon([(2, 6), (30, 6), (24, 11), (40, 11),
-                  (11, 19), (17, 14), (2, 14)], fill=1)
-art_draw.polygon([(88, 6), (116, 6), (110, 11), (126, 11),
-                  (97, 19), (103, 14), (88, 14)], fill=1)
-for x in (40, 56):
-    art_draw.line([(x + 3, 3), (x + 2, 20), (x + 7, 10),
-                   (x + 9, 20), (x + 14, 3)], fill=1, width=3)
-art_draw.line([(74, 3), (75, 20), (85, 3)], fill=1, width=3)
-dither = Image.new("1", art.size)
-dither.putdata([(x + y) % 2 == 0 for y in range(24) for x in range(128)])
-art = ImageChops.logical_and(art, dither)
+def draw_centered_text(draw, box, text, font):
+    left, top, right, bottom = box
+    bbox = draw.textbbox((0, 0), text, font=font)
+    width = bbox[2] - bbox[0]
+    height = bbox[3] - bbox[1]
+    x = left + (right - left - width) // 2
+    y = top + (bottom - top - height) // 2 - bbox[1]
+    draw.text((x, y), text, font=font, fill="white")
 
-while True:
-    now = datetime.now(timezone.utc)
-    with canvas(device) as draw:
-        draw.text((0, 0), now.strftime("%Y-%m-%d"), font=font, fill="white")
-        draw.text((0, 16), now.strftime("%H:%M:%S UTC"), font=time_font, fill="white")
-        bar_top = device.height - 6
-        draw.bitmap(((device.width - art.width) // 2, bar_top - art.height), art, fill="white")
-        draw.rectangle((0, bar_top, device.width - 1, device.height - 1), outline="white")
-        elapsed = now.second + now.microsecond / 1_000_000
-        filled = int((device.width - 2) * elapsed / 60)
-        if filled:
-            draw.rectangle((1, bar_top + 1, filled, device.height - 2), fill="white")
 
-        clock_x = max(12, min(device.width - 13, filled))
-        clock_y = bar_top - 24
-        draw.rectangle((clock_x - 12, clock_y, clock_x + 12, bar_top - 1), fill="black")
+def render_clock(now):
+    image = Image.new("1", (128, 64), 0)
+    draw = ImageDraw.Draw(image)
+    small_font = ImageFont.load_default()
+    utc_font = ImageFont.truetype(VCR_FONT, 16)
+
+    draw.rectangle((1, 1, 62, 13), outline="white")
+    draw.rectangle((65, 1, 126, 13), outline="white")
+    draw.text((4, 2), "CA TIME", font=small_font, fill="white")
+    draw.text((67, 2), "CO TIME", font=small_font, fill="white")
+    draw.text((4, 7), "California", font=small_font, fill="white")
+    draw.text((67, 7), "Colorado", font=small_font, fill="white")
+
+    draw.rectangle((1, 15, 126, 47), outline="white")
+    draw_centered_text(draw, (2, 16, 125, 46), "UTC TIME", utc_font)
+
+    draw.rectangle((1, 49, 20, 62), outline="white")
+    draw.rectangle((107, 49, 126, 62), outline="white")
+
+    draw.text((3, 50), "CART", font=small_font, fill="white")
+    draw.text((3, 54), "RAD", font=small_font, fill="white")
+    draw.text((3, 58), "TX", font=small_font, fill="white")
+
+    draw.text((109, 50), "CART", font=small_font, fill="white")
+    draw.text((109, 54), "RAD", font=small_font, fill="white")
+    draw.text((109, 58), "RX", font=small_font, fill="white")
+
+    draw.rectangle((23, 49, 104, 62), outline="white")
+    draw_centered_text(draw, (24, 49, 103, 62), "1 SEC BLINK", small_font)
+
+    if now.second % 2 == 0:
+        bolt_x = 96
+        bolt_y = 50
         draw.polygon(
-            [(clock_x - 12, clock_y + 5), (clock_x - 8, clock_y + 1),
-             (clock_x - 5, clock_y + 1), (clock_x - 3, clock_y + 3),
-             (clock_x - 9, clock_y + 9)],
+            [(bolt_x - 2, bolt_y), (bolt_x - 6, bolt_y + 6),
+             (bolt_x - 3, bolt_y + 6), (bolt_x - 5, bolt_y + 12),
+             (bolt_x + 3, bolt_y + 4), (bolt_x, bolt_y + 4),
+             (bolt_x + 2, bolt_y)],
             fill="white",
         )
-        draw.polygon(
-            [(clock_x + 12, clock_y + 5), (clock_x + 8, clock_y + 1),
-             (clock_x + 5, clock_y + 1), (clock_x + 3, clock_y + 3),
-             (clock_x + 9, clock_y + 9)],
-            fill="white",
-        )
-        draw.line((clock_x, clock_y + 1, clock_x, clock_y + 5), fill="white")
-        draw.line((clock_x - 2, clock_y + 1, clock_x + 2, clock_y + 1), fill="white")
-        draw.line((clock_x - 7, clock_y + 20, clock_x - 9, clock_y + 23), fill="white")
-        draw.line((clock_x + 7, clock_y + 20, clock_x + 9, clock_y + 23), fill="white")
-        draw.ellipse((clock_x - 9, clock_y + 5, clock_x + 9, clock_y + 23), fill="white")
-        draw.ellipse((clock_x - 5, clock_y + 11, clock_x - 3, clock_y + 13), fill="black")
-        draw.ellipse((clock_x + 3, clock_y + 11, clock_x + 5, clock_y + 13), fill="black")
-        draw.line(
-            [(clock_x - 3, clock_y + 16), (clock_x - 2, clock_y + 18),
-             (clock_x + 2, clock_y + 18), (clock_x + 3, clock_y + 16)],
-            fill="black",
-        )
-    time.sleep(0.1)
+
+    return image
+
+
+def main():
+    from luma.core.interface.serial import spi
+    from luma.core.render import canvas
+    from luma.oled.device import ssd1309
+
+    serial = spi(
+        port=0,
+        device=0,
+        gpio_DC=25,
+        gpio_RST=27,
+        bus_speed_hz=8000000,
+    )
+    device = ssd1309(serial)
+
+    while True:
+        now = datetime.now(timezone.utc)
+        with canvas(device) as draw:
+            draw.bitmap((0, 0), render_clock(now), fill="white")
+        time.sleep(0.1)
+
+
+if __name__ == "__main__":
+    main()
