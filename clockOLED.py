@@ -5,72 +5,96 @@
 
 import time
 from datetime import datetime, timezone
-from pathlib import Path
+from zoneinfo import ZoneInfo
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
-FONT_DIR = Path(__file__).parent / "fonts"
-VCR_FONT = str(FONT_DIR / "VCR_font.ttf")
+CALIFORNIA = ZoneInfo("America/Los_Angeles")
+COLORADO = ZoneInfo("America/Denver")
+
+SMALL_FONT = {
+    " ": ("000", "000", "000", "000", "000"),
+    "-": ("000", "000", "111", "000", "000"),
+    ":": ("000", "010", "000", "010", "000"),
+    "0": ("111", "101", "101", "101", "111"),
+    "1": ("010", "110", "010", "010", "111"),
+    "2": ("110", "001", "010", "100", "111"),
+    "3": ("110", "001", "010", "001", "110"),
+    "4": ("101", "101", "111", "001", "001"),
+    "5": ("111", "100", "110", "001", "110"),
+    "6": ("011", "100", "110", "101", "010"),
+    "7": ("111", "001", "010", "010", "010"),
+    "8": ("010", "101", "010", "101", "010"),
+    "9": ("010", "101", "011", "001", "110"),
+    "A": ("010", "101", "111", "101", "101"),
+    "C": ("011", "100", "100", "100", "011"),
+    "E": ("111", "100", "110", "100", "111"),
+    "I": ("111", "010", "010", "010", "111"),
+    "M": ("101", "111", "111", "101", "101"),
+    "O": ("010", "101", "101", "101", "010"),
+    "T": ("111", "010", "010", "010", "010"),
+    "U": ("101", "101", "101", "101", "111"),
+}
+
+SEGMENTS = {
+    "0": "abcdef",
+    "1": "bc",
+    "2": "abged",
+    "3": "abgcd",
+    "4": "fgbc",
+    "5": "afgcd",
+    "6": "afgecd",
+    "7": "abc",
+    "8": "abcdefg",
+    "9": "abfgcd",
+}
 
 
-def draw_centered_text(draw, box, text, font):
-    left, top, right, bottom = box
-    bbox = draw.textbbox((0, 0), text, font=font)
-    width = bbox[2] - bbox[0]
-    height = bbox[3] - bbox[1]
-    x = left + (right - left - width) // 2
-    y = top + (bottom - top - height) // 2 - bbox[1]
-    draw.text((x, y), text, font=font, fill="white")
+def draw_small_text(draw, text, x, y):
+    for char in text:
+        for row, pixels in enumerate(SMALL_FONT[char]):
+            for col, pixel in enumerate(pixels):
+                if pixel == "1":
+                    draw.point((x + col, y + row), fill="white")
+        x += 4
+
+
+def draw_led_time(draw, text, x, y):
+    for char in text:
+        if char == ":":
+            draw.rectangle((x, y + 7, x + 1, y + 8), fill="white")
+            draw.rectangle((x, y + 17, x + 1, y + 18), fill="white")
+            x += 5
+            continue
+
+        rectangles = {
+            "a": (x + 2, y, x + 9, y + 1),
+            "b": (x + 10, y + 2, x + 11, y + 10),
+            "c": (x + 10, y + 14, x + 11, y + 22),
+            "d": (x + 2, y + 23, x + 9, y + 24),
+            "e": (x, y + 14, x + 1, y + 22),
+            "f": (x, y + 2, x + 1, y + 10),
+            "g": (x + 2, y + 11, x + 9, y + 12),
+        }
+        for segment in SEGMENTS[char]:
+            draw.rectangle(rectangles[segment], fill="white")
+        x += 14
 
 
 def render_clock(now):
     image = Image.new("1", (128, 64), 0)
     draw = ImageDraw.Draw(image)
-    small_font = ImageFont.load_default()
-    utc_font = ImageFont.truetype(VCR_FONT, 14)
 
-    draw.rectangle((1, 1, 62, 13), outline="white")
-    draw.rectangle((65, 1, 126, 13), outline="white")
-    draw.text((4, 2), "CA TIME", font=small_font, fill="white")
-    draw.text((67, 2), "CO TIME", font=small_font, fill="white")
-    draw.text((4, 7), "California", font=small_font, fill="white")
-    draw.text((67, 7), "Colorado", font=small_font, fill="white")
+    colorado = now.astimezone(COLORADO).strftime("CO TIME: %H:%M")
+    california = now.astimezone(CALIFORNIA).strftime("CA TIME: %H:%M")
+    draw_small_text(draw, colorado, 0, 2)
+    draw_small_text(draw, california, 128 - (len(california) * 4 - 1), 2)
 
-    draw.rectangle((1, 15, 126, 47), outline="white")
-    utc_time = now.astimezone(timezone.utc).strftime("UTC: %H:%M:%S")
-    draw_centered_text(draw, (2, 16, 125, 46), utc_time, utc_font)
-
-    draw.rectangle((1, 49, 20, 62), outline="white")
-    draw.rectangle((107, 49, 126, 62), outline="white")
-
-    draw.line((10, 50, 10, 53), fill="white")
-    draw.line((10, 53, 6, 61), fill="white")
-    draw.line((10, 53, 14, 61), fill="white")
-    draw.line((8, 57, 12, 57), fill="white")
-    draw.line((7, 61, 13, 61), fill="white")
-    draw.line((8, 57, 13, 61), fill="white")
-    draw.line((12, 57, 7, 61), fill="white")
-    draw.line((3, 50, 7, 53, 5, 53, 7, 55), fill="white")
-    draw.line((17, 50, 13, 53, 15, 53, 13, 55), fill="white")
-
-    draw.text((109, 50), "CART", font=small_font, fill="white")
-    draw.text((109, 54), "RAD", font=small_font, fill="white")
-    draw.text((109, 58), "RX", font=small_font, fill="white")
-
-    draw.rectangle((23, 49, 104, 62), outline="white")
-    draw_centered_text(draw, (24, 49, 103, 62), "1 SEC BLINK", small_font)
-
-    if now.second % 2 == 0:
-        bolt_x = 96
-        bolt_y = 50
-        draw.polygon(
-            [(bolt_x - 2, bolt_y), (bolt_x - 6, bolt_y + 6),
-             (bolt_x - 3, bolt_y + 6), (bolt_x - 5, bolt_y + 12),
-             (bolt_x + 3, bolt_y + 4), (bolt_x, bolt_y + 4),
-             (bolt_x + 2, bolt_y)],
-            fill="white",
-        )
-
+    utc = now.astimezone(timezone.utc)
+    draw_small_text(draw, "UTC:", 3, 28)
+    draw_led_time(draw, utc.strftime("%H:%M:%S"), 25, 18)
+    date = utc.strftime("%Y-%m-%d")
+    draw_small_text(draw, date, (128 - (len(date) * 4 - 1)) // 2, 52)
     return image
 
 
