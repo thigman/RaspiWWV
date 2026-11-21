@@ -12,10 +12,9 @@ original setup instructions are in [RaspiWWV.pdf](/RaspiWWV.pdf).
 
 First configure and test the audio hardware and, if used, the RTC. Make sure
 `timedatectl status` shows the correct time; the services use the system clock,
-not the RTC directly. Configure the OS RTC and time synchronization separately:
-the services do not set or write the clock. The old `updateRTCtoNTP.sh` only
-checks network connectivity, not whether time is synchronized, so it is not
-run at startup.
+not the RTC directly. Configure the OS RTC and time synchronization separately.
+The installer adds a timer that updates `/dev/rtc0` only after the system
+reports synchronized time and the date is in the safe range described below.
 
 Run these commands as the normal Pi user from the repository directory. The
 user needs access to the audio device. The installer uses sudo, installs
@@ -36,6 +35,42 @@ Audio begins on the next UTC minute boundary. Test the audio device separately
 with `aplay /usr/share/sounds/alsa/Front_Center.wav`. The service starts at boot
 and restarts after a failure, including a player error or a player that hangs.
 The journal retains errors rather than discarding them.
+
+### Automatic RTC updates
+
+The RTC must already be configured as the system hardware clock. For the Seeed
+DS1307, confirm `sudo hwclock -r -f /dev/rtc0` works and configure the OS to use
+UTC for the RTC (`timedatectl` should report `RTC in local TZ: no`). The system
+must also have a working NTP synchronization service configured; the installer
+does not enable or replace one.
+
+The installer enables `raspiwwv-rtc.timer`. It first checks one minute after
+boot and retries five minutes after each check, even if an earlier write
+succeeded. When `/dev/rtc0` exists, `timedatectl` reports
+`NTPSynchronized=yes`, and UTC is between 2024-01-01 inclusive and 2100-01-01
+exclusive, the root-run service executes `hwclock -w -f /dev/rtc0`. The
+lower bound rejects obviously old dates; the upper bound reflects the DS1307's
+2000-2099 year range. Neither bound proves that a synchronized clock is
+accurate: the configured time source must be trustworthy.
+
+With no synchronized time or no `/dev/rtc0`, the service skips the write and
+tries again later. There is no battery-installed marker: after the recipient
+installs the battery, a later synchronized check can update the RTC. The service
+does not read the RTC into the system clock or change the OS boot-time RTC
+setup; an offline Pi relies on its normal RTC initialization. A missing or
+depleted battery may leave the RTC unable to retain time while powered off.
+Linux or other time services may also write the RTC independently (for example,
+the kernel's synchronized 11-minute update); this service does not control
+those writers. `updateRTCtoNTP.sh` now runs the same guarded check instead of
+testing network connectivity; it requires `installWWV.sh` to have installed the
+root-owned check first. Rerun `installWWV.sh` after pulling changes to
+`sync_rtc.py` to install the updated copy.
+
+```sh
+systemctl status raspiwwv-rtc.timer
+timedatectl show --property=NTPSynchronized --value
+journalctl -u raspiwwv-rtc.service -b --no-pager
+```
 
 ### Optional SSD1309 SPI OLED
 

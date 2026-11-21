@@ -36,12 +36,7 @@ then
 	sudo apt-get -y remove fake-hwclock
 	sudo update-rc.d -f fake-hwclock remove
 	sudo systemctl disable fake-hwclock
-	sudo mv /run/systemd/system /run/systemd/system.BAK
-	sleep 1
-
-	echo "Setting time in RTC..."
-	sudo hwclock -w --update-drift   
-	sleep 1
+	echo "RTC writes are handled by the synchronization timer installed by installWWV.sh."
 
 	echo "Displaying system & RTC times:"
 	timedatectl status

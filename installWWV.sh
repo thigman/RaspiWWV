@@ -37,7 +37,7 @@ fi
 sudo apt-get update
 sudo apt-get install -y alsa-utils mpg123
 tmp=$(mktemp -d)
-trap 'rm -f "$tmp/raspiwwv-audio.service" "$tmp/raspiwwv-oled.service"; rmdir "$tmp"' EXIT
+trap 'rm -f "$tmp/raspiwwv-audio.service" "$tmp/raspiwwv-oled.service" "$tmp/raspiwwv-rtc.service" "$tmp/raspiwwv-rtc.timer"; rmdir "$tmp"' EXIT
 
 write_unit() {
     local name=$1 script=$2 description=$3
@@ -64,7 +64,31 @@ write_unit raspiwwv-audio.service wwv_simulator.py "RaspiWWV audio"
 if [[ ${1:-} == "--oled" ]]; then
     write_unit raspiwwv-oled.service clockOLED.py "RaspiWWV OLED clock"
 fi
+cat > "$tmp/raspiwwv-rtc.service" <<EOF
+[Unit]
+Description=Update RaspiWWV hardware RTC from synchronized system time
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 -u /usr/local/lib/raspiwwv-sync-rtc.py
+EOF
+cat > "$tmp/raspiwwv-rtc.timer" <<'EOF'
+[Unit]
+Description=Periodically check for synchronized time to update RaspiWWV RTC
+
+[Timer]
+OnBootSec=1min
+OnUnitInactiveSec=5min
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target
+EOF
+sudo install -m 755 "$repo/sync_rtc.py" /usr/local/lib/raspiwwv-sync-rtc.py
+sudo install -m 644 "$tmp/raspiwwv-rtc.service" /etc/systemd/system/raspiwwv-rtc.service
+sudo install -m 644 "$tmp/raspiwwv-rtc.timer" /etc/systemd/system/raspiwwv-rtc.timer
 sudo systemctl daemon-reload
+sudo systemctl enable --now raspiwwv-rtc.timer
 sudo systemctl enable raspiwwv-audio.service
 sudo systemctl restart raspiwwv-audio.service
 if [[ ${1:-} == "--oled" ]]; then
