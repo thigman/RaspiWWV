@@ -54,16 +54,38 @@ if [ "$1" = install ]; then cp "$4" "$FAKE_OUTPUT/$(basename "$5")"; fi
             self.assertIn(f"systemctl restart raspiwwv-{name}.service",
                           (self.output / "commands").read_text())
 
+    def test_installs_rtc_timer_even_without_oled(self):
+        result = self.install()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        service = (self.output / "raspiwwv-rtc.service").read_text()
+        timer = (self.output / "raspiwwv-rtc.timer").read_text()
+        self.assertIn("ExecStart=/usr/bin/python3 -u /usr/local/lib/raspiwwv-sync-rtc.py",
+                      service)
+        self.assertEqual((self.output / "raspiwwv-sync-rtc.py").read_text(),
+                         (REPO / "sync_rtc.py").read_text())
+        self.assertIn("Type=oneshot", service)
+        self.assertNotIn("User=", service)
+        self.assertIn("OnBootSec=1min", timer)
+        self.assertIn("OnUnitInactiveSec=5min", timer)
+        self.assertIn("systemctl enable --now raspiwwv-rtc.timer",
+                      (self.output / "commands").read_text())
+
     @unittest.skipUnless(shutil.which("systemd-analyze"), "systemd-analyze is not installed")
     def test_generated_units_are_accepted_by_systemd(self):
         result = self.install("--oled")
         self.assertEqual(result.returncode, 0, result.stderr)
-        for name in ("audio", "oled"):
+        for name in ("audio", "oled", "rtc"):
             result = subprocess.run(
                 ["systemd-analyze", "verify", str(self.output / f"raspiwwv-{name}.service")],
                 capture_output=True, text=True,
             )
             self.assertEqual(result.returncode, 0, result.stderr)
+        result = subprocess.run(
+            ["systemd-analyze", "verify", str(self.output / "raspiwwv-rtc.timer"),
+             str(self.output / "raspiwwv-rtc.service")],
+            capture_output=True, text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_legacy_reboot_job_stops_install_before_sudo(self):
         self.env["FAKE_CRONTAB"] = "@reboot /bin/bash ./runWWV.sh"
