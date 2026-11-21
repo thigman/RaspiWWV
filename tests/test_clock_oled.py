@@ -2,7 +2,7 @@ import unittest
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
-from PIL import Image
+from PIL import ImageChops
 
 import clockOLED
 
@@ -12,62 +12,50 @@ class ClockOLEDTests(unittest.TestCase):
         image = clockOLED.render_clock(
             datetime(2026, 1, 1, 12, 34, 56, tzinfo=timezone.utc)
         )
-        self.assertIsInstance(image, Image.Image)
         self.assertEqual(image.size, (128, 64))
         self.assertEqual(image.mode, "1")
 
-    def test_bolt_blinks_once_per_second(self):
-        even = clockOLED.render_clock(
-            datetime(2026, 1, 1, 12, 34, 56, tzinfo=timezone.utc)
-        )
-        odd = clockOLED.render_clock(
-            datetime(2026, 1, 1, 12, 34, 57, tzinfo=timezone.utc)
-        )
-        self.assertNotEqual(
-            even.crop((89, 49, 104, 63)).tobytes(),
-            odd.crop((89, 49, 104, 63)).tobytes(),
-        )
+    def test_local_times_follow_daylight_saving(self):
+        cases = [
+            (datetime(2026, 1, 1, 12, 34, tzinfo=timezone.utc),
+             "CO TIME: 05:34", "CA TIME: 04:34"),
+            (datetime(2026, 7, 1, 12, 34, tzinfo=timezone.utc),
+             "CO TIME: 06:34", "CA TIME: 05:34"),
+            (datetime(2026, 3, 8, 9, 59, tzinfo=timezone.utc),
+             "CO TIME: 03:59", "CA TIME: 01:59"),
+            (datetime(2026, 3, 8, 10, 0, tzinfo=timezone.utc),
+             "CO TIME: 04:00", "CA TIME: 03:00"),
+        ]
+        for now, colorado, california in cases:
+            with self.subTest(now=now), patch.object(
+                clockOLED, "draw_small_text", wraps=clockOLED.draw_small_text
+            ) as draw_text:
+                clockOLED.render_clock(now)
+                calls = draw_text.call_args_list
+                self.assertEqual(calls[0].args[1:4], (colorado, 0, 2))
+                self.assertEqual(calls[1].args[1:4], (california, 73, 2))
+                self.assertEqual(calls[2].args[1], "UTC:")
 
-    def test_middle_box_displays_utc_time_with_seconds(self):
+    def test_clock_and_date_are_utc(self):
         local_time = datetime(
-            2026, 1, 1, 4, 34, 56, tzinfo=timezone(timedelta(hours=-8))
+            2025, 12, 31, 16, 34, 56, tzinfo=timezone(timedelta(hours=-8))
         )
-        with patch.object(
-            clockOLED, "draw_centered_text", wraps=clockOLED.draw_centered_text
-        ) as draw_centered:
+        with patch.object(clockOLED, "draw_led_time", wraps=clockOLED.draw_led_time) as led, \
+             patch.object(clockOLED, "draw_small_text", wraps=clockOLED.draw_small_text) as draw_text:
             clockOLED.render_clock(local_time)
-        self.assertEqual(draw_centered.call_args_list[0].args[2], "UTC: 12:34:56")
+        self.assertEqual(led.call_args.args[1], "00:34:56")
+        self.assertEqual(draw_text.call_args_list[-1].args[1], "2026-01-01")
 
-    def test_middle_box_changes_each_second(self):
+    def test_utc_digits_update_with_seconds(self):
         first = clockOLED.render_clock(
             datetime(2026, 1, 1, 12, 34, 56, tzinfo=timezone.utc)
         )
         second = clockOLED.render_clock(
             datetime(2026, 1, 1, 12, 34, 57, tzinfo=timezone.utc)
         )
-        self.assertNotEqual(
-            first.crop((2, 16, 126, 47)).tobytes(),
-            second.crop((2, 16, 126, 47)).tobytes(),
-        )
-
-    def test_prefixed_time_fits_inside_middle_box(self):
-        font = clockOLED.ImageFont.truetype(clockOLED.VCR_FONT, 14)
-        for hour in range(24):
-            for minute in range(60):
-                text = f"UTC: {hour:02}:{minute:02}:59"
-                bbox = font.getbbox(text)
-                self.assertLessEqual(bbox[2] - bbox[0], 123, text)
-
-    def test_transmitter_art_shows_tower_and_signal(self):
-        image = clockOLED.render_clock(
-            datetime(2026, 1, 1, 12, 34, 56, tzinfo=timezone.utc)
-        )
-        self.assertTrue(image.getpixel((10, 50)))
-        self.assertTrue(image.getpixel((6, 61)))
-        self.assertTrue(image.getpixel((14, 61)))
-        self.assertTrue(image.getpixel((3, 50)))
-        self.assertTrue(image.getpixel((17, 50)))
-
+        self.assertIsNotNone(ImageChops.difference(
+            first.crop((25, 18, 128, 43)), second.crop((25, 18, 128, 43))
+        ).getbbox())
 
 if __name__ == "__main__":
     unittest.main()
