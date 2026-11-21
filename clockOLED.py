@@ -37,7 +37,8 @@ def render_clock(now):
     draw.text((67, 7), "Colorado", font=small_font, fill="white")
 
     draw.rectangle((1, 15, 126, 47), outline="white")
-    draw_centered_text(draw, (2, 16, 125, 46), "UTC TIME", utc_font)
+    utc_time = now.astimezone(timezone.utc).strftime("%H:%M:%S")
+    draw_centered_text(draw, (2, 16, 125, 46), utc_time, utc_font)
 
     draw.rectangle((1, 49, 20, 62), outline="white")
     draw.rectangle((107, 49, 126, 62), outline="white")
