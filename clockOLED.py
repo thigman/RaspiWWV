@@ -3,14 +3,20 @@
 # SSD1309 SPI OLED clock
 # License: GPLv3, see: www.gnu.org/licenses/gpl-3.0.html
 
+import logging
+import subprocess
+import threading
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 CALIFORNIA = ZoneInfo("America/Los_Angeles")
 COLORADO = ZoneInfo("America/Denver")
+ALERT_SECONDS = 15
+SYNC_POLL_SECONDS = 2
 
 SMALL_FONT = {
     " ": ("000", "000", "000", "000", "000"),
@@ -48,6 +54,67 @@ SEGMENTS = {
     "8": "abcdefg",
     "9": "abfgcd",
 }
+
+
+class SyncAlert:
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._synchronized = None
+        self._until = 0
+
+    def update(self, synchronized, now):
+        with self._lock:
+            if synchronized and self._synchronized is not True:
+                self._until = now + ALERT_SECONDS
+            self._synchronized = synchronized
+
+    def visible(self, now):
+        with self._lock:
+            return now < self._until
+
+
+def ntp_synchronized():
+    result = subprocess.run(
+        ["timedatectl", "show", "--property=NTPSynchronized", "--value"],
+        check=True, capture_output=True, text=True, timeout=3,
+    )
+    status = result.stdout.strip()
+    if status not in ("yes", "no"):
+        raise ValueError(f"Unexpected time synchronization status: {status!r}")
+    return status == "yes"
+
+
+def monitor_ntp(alert):
+    last_error = None
+    while True:
+        try:
+            synchronized = ntp_synchronized()
+        except (OSError, subprocess.SubprocessError, ValueError) as error:
+            if isinstance(error, subprocess.CalledProcessError) and error.stderr:
+                detail = error.stderr.strip()
+            else:
+                detail = str(error)
+            if detail != last_error:
+                logging.warning("Cannot check NTP synchronization: %s", detail)
+                last_error = detail
+        else:
+            if last_error is not None:
+                logging.info("NTP synchronization status checks resumed")
+                last_error = None
+            alert.update(synchronized, time.monotonic())
+        time.sleep(SYNC_POLL_SECONDS)
+
+
+def render_sync_alert():
+    image = Image.new("1", (128, 64), 0)
+    draw = ImageDraw.Draw(image)
+    font = ImageFont.truetype(str(Path(__file__).parent / "fonts" / "VCR_font.ttf"), 20)
+    draw.rectangle((0, 0, 127, 63), outline="white")
+    for text, y in (("NTP", 7), ("SYNCED", 35)):
+        left, top, right, _ = draw.textbbox((0, 0), text, font=font)
+        draw.text(((128 - (right - left)) // 2 - left, y - top),
+                  text, font=font, fill="white")
+    return image
 
 
 def draw_small_text(draw, text, x, y):
@@ -132,11 +199,15 @@ def main():
         bus_speed_hz=8000000,
     )
     device = ssd1309(serial)
+    alert = SyncAlert()
+    alert_image = render_sync_alert()
+    threading.Thread(target=monitor_ntp, args=(alert,), daemon=True).start()
 
     while True:
         now = datetime.now(timezone.utc)
         with canvas(device) as draw:
-            draw.bitmap((0, 0), render_clock(now), fill="white")
+            image = alert_image if alert.visible(time.monotonic()) else render_clock(now)
+            draw.bitmap((0, 0), image, fill="white")
         time.sleep(0.1)
 
 
