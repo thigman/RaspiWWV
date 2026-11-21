@@ -70,6 +70,16 @@ class ClockOLEDTests(unittest.TestCase):
             self.assertIsNotNone(on.crop(box).getbbox())
             self.assertEqual(on.crop(box).tobytes(), off.crop(box).tobytes())
 
+    def test_antenna_has_mast_and_separate_signal_waves(self):
+        image = clockOLED.render_clock(
+            datetime(2026, 1, 1, 12, 34, 56, tzinfo=timezone.utc)
+        )
+        for x in (41, 44, 49, 54, 57):
+            self.assertTrue(image.getpixel((x, 50)))
+        for x in (42, 45, 48, 50, 53, 56):
+            self.assertFalse(image.getpixel((x, 50)))
+        self.assertTrue(all(image.getpixel((49, y)) for y in range(49, 63)))
+
 
 if __name__ == "__main__":
     unittest.main()

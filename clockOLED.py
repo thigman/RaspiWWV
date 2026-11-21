@@ -96,9 +96,12 @@ def render_clock(now):
     date = utc.strftime("%Y-%m-%d")
     draw_small_text(draw, date, 0, 52)
 
-    draw.line((42, 46, 49, 53, 56, 46), fill="white")
-    draw.line((49, 53, 49, 61), fill="white")
+    draw.line((49, 49, 49, 61), fill="white")
     draw.line((46, 62, 52, 62), fill="white")
+    draw.line([(44, 45), (42, 47), (41, 49), (41, 51), (42, 53), (44, 55)], fill="white")
+    draw.line([(46, 47), (45, 48), (44, 49), (44, 51), (45, 52), (46, 53)], fill="white")
+    draw.line([(54, 45), (56, 47), (57, 49), (57, 51), (56, 53), (54, 55)], fill="white")
+    draw.line([(52, 47), (53, 48), (54, 49), (54, 51), (53, 52), (52, 53)], fill="white")
 
     if utc.microsecond < 500_000:
         draw.polygon(
