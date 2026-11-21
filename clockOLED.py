@@ -4,7 +4,6 @@
 # License: GPLv3, see: www.gnu.org/licenses/gpl-3.0.html
 
 import logging
-import subprocess
 import threading
 import time
 from datetime import datetime, timezone
@@ -17,6 +16,7 @@ CALIFORNIA = ZoneInfo("America/Los_Angeles")
 COLORADO = ZoneInfo("America/Denver")
 ALERT_SECONDS = 15
 SYNC_POLL_SECONDS = 2
+SYNC_NOTIFICATION = Path("/run/raspiwwv-rtc-synced")
 
 SMALL_FONT = {
     " ": ("000", "000", "000", "000", "000"),
@@ -73,35 +73,25 @@ class SyncAlert:
             return now < self._until
 
 
-def ntp_synchronized():
-    result = subprocess.run(
-        ["timedatectl", "show", "--property=NTPSynchronized", "--value"],
-        check=True, capture_output=True, text=True, timeout=3,
-    )
-    status = result.stdout.strip()
-    if status not in ("yes", "no"):
-        raise ValueError(f"Unexpected time synchronization status: {status!r}")
-    return status == "yes"
-
-
-def monitor_ntp(alert):
+def monitor_rtc_sync(alert):
     last_error = None
     while True:
         try:
-            synchronized = ntp_synchronized()
-        except (OSError, subprocess.SubprocessError, ValueError) as error:
-            if isinstance(error, subprocess.CalledProcessError) and error.stderr:
-                detail = error.stderr.strip()
-            else:
-                detail = str(error)
+            SYNC_NOTIFICATION.stat()
+            synchronized = True
+        except FileNotFoundError:
+            synchronized = False
+        except OSError as error:
+            detail = str(error)
             if detail != last_error:
-                logging.warning("Cannot check NTP synchronization: %s", detail)
+                logging.warning("Cannot check RTC synchronization notification: %s", detail)
                 last_error = detail
-        else:
-            if last_error is not None:
-                logging.info("NTP synchronization status checks resumed")
-                last_error = None
-            alert.update(synchronized, time.monotonic())
+            time.sleep(SYNC_POLL_SECONDS)
+            continue
+        if last_error is not None:
+            logging.info("RTC synchronization notification checks resumed")
+            last_error = None
+        alert.update(synchronized, time.monotonic())
         time.sleep(SYNC_POLL_SECONDS)
 
 
@@ -110,7 +100,7 @@ def render_sync_alert():
     draw = ImageDraw.Draw(image)
     font = ImageFont.truetype(str(Path(__file__).parent / "fonts" / "VCR_font.ttf"), 20)
     draw.rectangle((0, 0, 127, 63), outline="white")
-    for text, y in (("NTP", 7), ("SYNCED", 35)):
+    for text, y in (("RTC", 7), ("SYNCED", 35)):
         left, top, right, _ = draw.textbbox((0, 0), text, font=font)
         draw.text(((128 - (right - left)) // 2 - left, y - top),
                   text, font=font, fill="white")
@@ -201,7 +191,7 @@ def main():
     device = ssd1309(serial)
     alert = SyncAlert()
     alert_image = render_sync_alert()
-    threading.Thread(target=monitor_ntp, args=(alert,), daemon=True).start()
+    threading.Thread(target=monitor_rtc_sync, args=(alert,), daemon=True).start()
 
     while True:
         now = datetime.now(timezone.utc)
