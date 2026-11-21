@@ -1,7 +1,8 @@
-import subprocess
+import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
-from unittest.mock import Mock, patch
+from pathlib import Path
+from unittest.mock import patch
 
 from PIL import ImageChops
 
@@ -83,7 +84,7 @@ class ClockOLEDTests(unittest.TestCase):
         self.assertTrue(all(image.getpixel((49, y)) for y in range(49, 63)))
 
 
-class NTPSyncAlertTests(unittest.TestCase):
+class RTCSyncAlertTests(unittest.TestCase):
     def test_alert_lasts_15_seconds_and_only_repeats_after_sync_loss(self):
         alert = clockOLED.SyncAlert()
         alert.update(False, 10)
@@ -104,29 +105,40 @@ class NTPSyncAlertTests(unittest.TestCase):
         self.assertTrue(alert.visible(100))
         self.assertFalse(alert.visible(115))
 
-    def test_ntp_status_requires_explicit_yes(self):
-        for output, expected in (("yes\n", True), ("no\n", False)):
-            with self.subTest(output=output), patch.object(
-                clockOLED.subprocess, "run", return_value=Mock(stdout=output)
-            ) as run:
-                self.assertEqual(clockOLED.ntp_synchronized(), expected)
-                self.assertEqual(run.call_args.args[0],
-                                 ["timedatectl", "show", "--property=NTPSynchronized", "--value"])
-        with patch.object(clockOLED.subprocess, "run", return_value=Mock(stdout="")):
-            with self.assertRaises(ValueError):
-                clockOLED.ntp_synchronized()
+    def test_monitor_detects_rtc_write_and_does_not_repeat(self):
+        alert = clockOLED.SyncAlert()
+        with tempfile.TemporaryDirectory() as temp:
+            marker = Path(temp) / "rtc-synced"
+            calls = 0
+
+            def sleep(_):
+                nonlocal calls
+                calls += 1
+                if calls == 1:
+                    self.assertFalse(alert.visible(10))
+                    marker.touch()
+                elif calls == 2:
+                    self.assertTrue(alert.visible(20))
+                else:
+                    raise StopIteration
+
+            with patch.object(clockOLED, "SYNC_NOTIFICATION", marker), \
+                 patch.object(clockOLED.time, "monotonic", side_effect=[10, 20, 40]), \
+                 patch.object(clockOLED.time, "sleep", side_effect=sleep):
+                with self.assertRaises(StopIteration):
+                    clockOLED.monitor_rtc_sync(alert)
+        self.assertFalse(alert.visible(40))
 
     def test_monitor_logs_errors_and_resumes_without_false_alerts(self):
         alert = clockOLED.SyncAlert()
-        error = subprocess.TimeoutExpired("timedatectl", 3)
-        with patch.object(clockOLED, "ntp_synchronized",
-                          side_effect=[True, error, True]), \
+        with patch.object(clockOLED.SYNC_NOTIFICATION.__class__, "stat",
+                          side_effect=[None, PermissionError("denied"), None]), \
              patch.object(clockOLED.time, "monotonic", side_effect=[10, 30]), \
              patch.object(clockOLED.time, "sleep",
                           side_effect=[None, None, StopIteration]), \
              self.assertLogs(level="WARNING"):
             with self.assertRaises(StopIteration):
-                clockOLED.monitor_ntp(alert)
+                clockOLED.monitor_rtc_sync(alert)
         self.assertFalse(alert.visible(30))
 
     def test_alert_screen_is_drawn_for_oled(self):

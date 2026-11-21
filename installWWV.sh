@@ -77,8 +77,8 @@ cat > "$tmp/raspiwwv-rtc.timer" <<'EOF'
 Description=Periodically check for synchronized time to update RaspiWWV RTC
 
 [Timer]
-OnBootSec=1min
-OnUnitInactiveSec=5min
+OnBootSec=15s
+OnUnitInactiveSec=1min
 AccuracySec=1s
 
 [Install]
@@ -88,7 +88,8 @@ sudo install -m 755 "$repo/sync_rtc.py" /usr/local/lib/raspiwwv-sync-rtc.py
 sudo install -m 644 "$tmp/raspiwwv-rtc.service" /etc/systemd/system/raspiwwv-rtc.service
 sudo install -m 644 "$tmp/raspiwwv-rtc.timer" /etc/systemd/system/raspiwwv-rtc.timer
 sudo systemctl daemon-reload
-sudo systemctl enable --now raspiwwv-rtc.timer
+sudo systemctl enable raspiwwv-rtc.timer
+sudo systemctl restart raspiwwv-rtc.timer
 sudo systemctl enable raspiwwv-audio.service
 sudo systemctl restart raspiwwv-audio.service
 if [[ ${1:-} == "--oled" ]]; then

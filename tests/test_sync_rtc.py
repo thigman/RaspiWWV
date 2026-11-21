@@ -1,12 +1,22 @@
 import subprocess
+import tempfile
 import unittest
 from datetime import datetime, timezone
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 import sync_rtc
 
 
 class RTCSyncTests(unittest.TestCase):
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.notification = Path(temp.name) / "rtc-synced"
+        marker = patch.object(sync_rtc, "SYNC_NOTIFICATION", self.notification)
+        marker.start()
+        self.addCleanup(marker.stop)
+
     def run_sync(self, status="yes", now=None, exists=True, write_error=None):
         clock = Mock()
         clock.now.return_value = now or datetime(2026, 1, 1, tzinfo=timezone.utc)
@@ -26,6 +36,7 @@ class RTCSyncTests(unittest.TestCase):
         self.assertEqual(run.call_args_list[0].args[0],
                          ["timedatectl", "show", "--property=NTPSynchronized", "--value"])
         self.assertEqual(run.call_args_list[1].args[0], ["hwclock", "-w", "-f", "/dev/rtc0"])
+        self.assertTrue(self.notification.exists())
         self.assertEqual(self.run_sync()[1].call_count, 2)
 
     def test_unsynchronized_or_unknown_status_never_writes(self):
@@ -34,11 +45,13 @@ class RTCSyncTests(unittest.TestCase):
                 result, run = self.run_sync(status=status)
                 self.assertEqual(result, 0 if status == "no" else 1)
                 self.assertEqual(run.call_count, 1)
+                self.assertFalse(self.notification.exists())
 
     def test_missing_rtc_skips_all_commands(self):
         result, run = self.run_sync(exists=False)
         self.assertEqual(result, 0)
         run.assert_not_called()
+        self.assertFalse(self.notification.exists())
 
     def test_implausible_dates_never_write(self):
         for now in (datetime(2023, 12, 31, 23, 59, 59, tzinfo=timezone.utc),
@@ -70,6 +83,14 @@ class RTCSyncTests(unittest.TestCase):
         result, run = self.run_sync(
             write_error=subprocess.CalledProcessError(1, "hwclock")
         )
+        self.assertEqual(result, 1)
+        self.assertEqual(run.call_count, 2)
+        self.assertFalse(self.notification.exists())
+
+    def test_notification_failure_is_reported_after_successful_write(self):
+        self.notification = self.notification / "missing" / "rtc-synced"
+        with patch.object(sync_rtc, "SYNC_NOTIFICATION", self.notification):
+            result, run = self.run_sync()
         self.assertEqual(result, 1)
         self.assertEqual(run.call_count, 2)
 

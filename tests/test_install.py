@@ -65,9 +65,11 @@ if [ "$1" = install ]; then cp "$4" "$FAKE_OUTPUT/$(basename "$5")"; fi
                          (REPO / "sync_rtc.py").read_text())
         self.assertIn("Type=oneshot", service)
         self.assertNotIn("User=", service)
-        self.assertIn("OnBootSec=1min", timer)
-        self.assertIn("OnUnitInactiveSec=5min", timer)
-        self.assertIn("systemctl enable --now raspiwwv-rtc.timer",
+        self.assertIn("OnBootSec=15s", timer)
+        self.assertIn("OnUnitInactiveSec=1min", timer)
+        self.assertIn("systemctl enable raspiwwv-rtc.timer",
+                      (self.output / "commands").read_text())
+        self.assertIn("systemctl restart raspiwwv-rtc.timer",
                       (self.output / "commands").read_text())
 
     @unittest.skipUnless(shutil.which("systemd-analyze"), "systemd-analyze is not installed")

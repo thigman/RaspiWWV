@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 RTC = Path("/dev/rtc0")
+SYNC_NOTIFICATION = Path("/run/raspiwwv-rtc-synced")
 EARLIEST_TIME = datetime(2024, 1, 1, tzinfo=timezone.utc)
 LATEST_TIME = datetime(2100, 1, 1, tzinfo=timezone.utc)
 
@@ -49,6 +50,15 @@ def main():
         print(f"Failed to write {RTC}: {error}", file=sys.stderr)
         return 1
     print(f"Updated {RTC} from synchronized system time ({now.isoformat()}).")
+    try:
+        with SYNC_NOTIFICATION.open("x"):
+            pass
+    except FileExistsError:
+        pass
+    except OSError as error:
+        print(f"RTC was written, but could not publish OLED notification: {error}",
+              file=sys.stderr)
+        return 1
     return 0
 
 
