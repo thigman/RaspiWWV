@@ -190,18 +190,18 @@ def render_clock(now):
     date = utc.strftime("%Y-%m-%d")
     draw_local_text(draw, date, 0, 51)
 
-    draw.line((56, 49, 56, 61), fill="white")
-    draw.line((53, 62, 59, 62), fill="white")
-    draw.line([(52, 45), (50, 48), (50, 52), (52, 55)], fill="white")
-    draw.line([(54, 47), (53, 49), (53, 51), (54, 53)], fill="white")
-    draw.line([(60, 45), (62, 48), (62, 52), (60, 55)], fill="white")
-    draw.line([(58, 47), (59, 49), (59, 51), (58, 53)], fill="white")
+    draw.line((60, 49, 60, 61), fill="white")
+    draw.line((57, 62, 63, 62), fill="white")
+    draw.line([(56, 45), (54, 48), (54, 52), (56, 55)], fill="white")
+    draw.line([(58, 47), (57, 49), (57, 51), (58, 53)], fill="white")
+    draw.line([(64, 45), (66, 48), (66, 52), (64, 55)], fill="white")
+    draw.line([(62, 47), (63, 49), (63, 51), (62, 53)], fill="white")
 
     if utc.microsecond < 500_000:
         draw.polygon(
-            [(66, 54), (78, 50), (75, 54), (84, 54),
-             (84, 52), (88, 56), (84, 60), (84, 58),
-             (72, 61), (74, 56), (66, 56)],
+            [(70, 54), (82, 50), (79, 54), (88, 54),
+             (88, 52), (92, 56), (88, 60), (88, 58),
+             (76, 61), (78, 56), (70, 56)],
             fill="white",
         )
 
