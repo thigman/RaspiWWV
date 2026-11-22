@@ -44,8 +44,8 @@ UTC for the RTC (`timedatectl` should report `RTC in local TZ: no`). The system
 must also have a working NTP synchronization service configured; the installer
 does not enable or replace one.
 
-The installer enables `raspiwwv-rtc.timer`. It first checks one minute after
-boot and retries five minutes after each check, even if an earlier write
+The installer enables `raspiwwv-rtc.timer`. It first checks 15 seconds after
+boot and retries one minute after each check, even if an earlier write
 succeeded. When `/dev/rtc0` exists, `timedatectl` reports
 `NTPSynchronized=yes`, and UTC is between 2024-01-01 inclusive and 2100-01-01
 exclusive, the root-run service executes `hwclock -w -f /dev/rtc0`. The
@@ -81,11 +81,11 @@ The display shows Colorado and California local time (including daylight
 saving changes) above a 24-hour UTC clock with seconds and the UTC date.
 Beside the date, an antenna and radio are connected by a bolt that flashes
 once per second.
-When the system reports NTP synchronization, the OLED shows a large
-`NTP SYNCED` alert for 15 seconds, then returns to the clock. It also shows
-the alert at OLED startup if the system is already synchronized, and again
-if synchronization is lost and later regained. Status is checked every two
-seconds independently of the RTC.
+After the first successful RTC write in a boot, the OLED shows `RTC SYNCED` for
+15 seconds, then returns to the clock. If the OLED starts after that write, it
+shows the alert at startup. The notification is stored in `/run` until reboot
+and never prevents later RTC writes. A successful write does not prove that the
+battery is installed or that the RTC will retain time without power.
 The system must have the IANA time zone database installed (the `tzdata`
 package on Raspberry Pi OS).
 For example, on Raspberry Pi OS, enable SPI in `sudo raspi-config` under
