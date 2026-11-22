@@ -70,8 +70,8 @@ class ClockOLEDTests(unittest.TestCase):
             datetime(2026, 11, 22, 15, 58, 21, tzinfo=timezone.utc)
         )
         self.assertEqual(image.crop((0, 51, 47, 58)).getbbox()[1::2], (0, 7))
-        for box in ((47, 45, 50, 63), (63, 45, 66, 63),
-                    (89, 45, 101, 63)):
+        for box in ((47, 45, 54, 63), (67, 45, 70, 63),
+                    (93, 45, 101, 63)):
             self.assertIsNone(image.crop(box).getbbox())
 
     def test_utc_digits_update_with_seconds(self):
@@ -90,12 +90,12 @@ class ClockOLEDTests(unittest.TestCase):
         on = clockOLED.render_clock(now)
         off = clockOLED.render_clock(now.replace(microsecond=500_000))
         next_on = clockOLED.render_clock(now + timedelta(seconds=1))
-        bolt = (65, 45, 90, 63)
+        bolt = (69, 45, 94, 63)
         self.assertIsNotNone(on.crop(bolt).getbbox())
         self.assertIsNone(off.crop(bolt).getbbox())
-        self.assertEqual(ImageChops.difference(on, off).getbbox(), (66, 50, 89, 62))
+        self.assertEqual(ImageChops.difference(on, off).getbbox(), (70, 50, 93, 62))
         self.assertEqual(on.crop(bolt).tobytes(), next_on.crop(bolt).tobytes())
-        for box in ((0, 51, 47, 58), (50, 45, 63, 63), (101, 45, 128, 63)):
+        for box in ((0, 51, 47, 58), (54, 45, 67, 63), (101, 45, 128, 63)):
             self.assertIsNotNone(on.crop(box).getbbox())
             self.assertEqual(on.crop(box).tobytes(), off.crop(box).tobytes())
 
@@ -103,11 +103,11 @@ class ClockOLEDTests(unittest.TestCase):
         image = clockOLED.render_clock(
             datetime(2026, 1, 1, 12, 34, 56, tzinfo=timezone.utc)
         )
-        for x in (50, 53, 56, 59, 62):
+        for x in (54, 57, 60, 63, 66):
             self.assertTrue(image.getpixel((x, 50)))
-        for x in (51, 54, 55, 57, 58, 61):
+        for x in (55, 58, 59, 61, 62, 65):
             self.assertFalse(image.getpixel((x, 50)))
-        self.assertTrue(all(image.getpixel((56, y)) for y in range(49, 63)))
+        self.assertTrue(all(image.getpixel((60, y)) for y in range(49, 63)))
 
 
 class RTCSyncAlertTests(unittest.TestCase):
