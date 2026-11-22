@@ -44,6 +44,7 @@ SMALL_FONT = {
 
 LOCAL_FONT = {
     " ": ("0",) * 7,
+    "-": ("000", "000", "000", "111", "000", "000", "000"),
     ":": ("0", "0", "1", "0", "1", "0", "0"),
     "0": ("0110", "1001", "1001", "1001", "1001", "1001", "0110"),
     "1": ("0100", "1100", "0100", "0100", "0100", "0100", "1110"),
@@ -180,34 +181,34 @@ def render_clock(now):
 
     colorado = now.astimezone(COLORADO).strftime("CO TIME: %H:%M")
     california = now.astimezone(CALIFORNIA).strftime("CA TIME: %H:%M")
-    draw_local_text(draw, colorado, 0, 1)
-    draw_local_text(draw, california, 128 - local_text_width(california), 1)
+    draw_local_text(draw, california, 0, 1)
+    draw_local_text(draw, colorado, 128 - local_text_width(colorado), 1)
 
     utc = now.astimezone(timezone.utc)
     draw_small_text(draw, "UTC:", 3, 25)
     draw_led_time(draw, utc.strftime("%H:%M:%S"), 25, 15)
     date = utc.strftime("%Y-%m-%d")
-    draw_small_text(draw, date, 0, 52)
+    draw_local_text(draw, date, 0, 51)
 
-    draw.line((49, 49, 49, 61), fill="white")
-    draw.line((46, 62, 52, 62), fill="white")
-    draw.line([(44, 45), (42, 47), (41, 49), (41, 51), (42, 53), (44, 55)], fill="white")
-    draw.line([(46, 47), (45, 48), (44, 49), (44, 51), (45, 52), (46, 53)], fill="white")
-    draw.line([(54, 45), (56, 47), (57, 49), (57, 51), (56, 53), (54, 55)], fill="white")
-    draw.line([(52, 47), (53, 48), (54, 49), (54, 51), (53, 52), (52, 53)], fill="white")
+    draw.line((56, 49, 56, 61), fill="white")
+    draw.line((53, 62, 59, 62), fill="white")
+    draw.line([(52, 45), (50, 48), (50, 52), (52, 55)], fill="white")
+    draw.line([(54, 47), (53, 49), (53, 51), (54, 53)], fill="white")
+    draw.line([(60, 45), (62, 48), (62, 52), (60, 55)], fill="white")
+    draw.line([(58, 47), (59, 49), (59, 51), (58, 53)], fill="white")
 
     if utc.microsecond < 500_000:
         draw.polygon(
-            [(63, 54), (77, 50), (74, 54), (85, 54),
-             (85, 52), (90, 56), (85, 60), (85, 58),
-             (70, 61), (73, 56), (63, 56)],
+            [(66, 54), (78, 50), (75, 54), (84, 54),
+             (84, 52), (88, 56), (84, 60), (84, 58),
+             (72, 61), (74, 56), (66, 56)],
             fill="white",
         )
 
-    draw.line((102, 51, 115, 45), fill="white")
-    draw.rounded_rectangle((98, 51, 127, 62), radius=2, outline="white")
+    draw.line((105, 51, 117, 45), fill="white")
+    draw.rounded_rectangle((101, 51, 127, 62), radius=2, outline="white")
     for y in (54, 56, 58):
-        draw.line((101, y, 108, y), fill="white")
+        draw.line((104, y, 110, y), fill="white")
     draw.ellipse((114, 53, 122, 60), outline="white")
     return image
 
