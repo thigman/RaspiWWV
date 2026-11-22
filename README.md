@@ -77,7 +77,7 @@ journalctl -u raspiwwv-rtc.service -b --no-pager
 `clockOLED.py` uses SPI port 0, device 0, GPIO 25 for DC and GPIO 27 for reset
 (BCM numbering). Enable SPI, ensure the Pi user has access to SPI and GPIO, and
 install `luma.oled`, Pillow, SPI and GPIO dependencies in the Python environment.
-The display shows Colorado and California local time (including daylight
+The display shows California and Colorado local time (including daylight
 saving changes) above a 24-hour UTC clock with seconds and the UTC date.
 Beside the date, an antenna and radio are connected by a bolt that flashes
 once per second.

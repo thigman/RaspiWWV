@@ -34,20 +34,20 @@ class ClockOLEDTests(unittest.TestCase):
             ) as draw_text:
                 clockOLED.render_clock(now)
                 calls = draw_text.call_args_list
-                self.assertEqual(calls[0].args[1:4], (colorado, 0, 1))
+                self.assertEqual(calls[0].args[1:4], (california, 0, 1))
                 self.assertEqual(calls[1].args[1:4],
-                                 (california, 128 - clockOLED.local_text_width(california), 1))
+                                 (colorado, 128 - clockOLED.local_text_width(colorado), 1))
 
     def test_clock_and_date_are_utc(self):
         local_time = datetime(
             2025, 12, 31, 16, 34, 56, tzinfo=timezone(timedelta(hours=-8))
         )
         with patch.object(clockOLED, "draw_led_time", wraps=clockOLED.draw_led_time) as led, \
-             patch.object(clockOLED, "draw_small_text", wraps=clockOLED.draw_small_text) as draw_text:
+             patch.object(clockOLED, "draw_local_text", wraps=clockOLED.draw_local_text) as draw_text:
             clockOLED.render_clock(local_time)
         self.assertEqual(led.call_args.args[1], "00:34:56")
         self.assertEqual(led.call_args.args[2:4], (25, 15))
-        self.assertEqual(draw_text.call_args_list[-1].args[1:4], ("2026-01-01", 0, 52))
+        self.assertEqual(draw_text.call_args_list[-1].args[1:4], ("2026-01-01", 0, 51))
 
     def test_local_time_lines_fit_without_overlap(self):
         for hour in range(24):
@@ -65,6 +65,15 @@ class ClockOLEDTests(unittest.TestCase):
         self.assertEqual(image.crop((64, 0, 128, 10)).getbbox()[1::2], (1, 8))
         self.assertIsNone(image.crop((0, 40, 128, 45)).getbbox())
 
+    def test_enlarged_date_and_narrower_icons_have_separate_space(self):
+        image = clockOLED.render_clock(
+            datetime(2026, 11, 22, 15, 58, 21, tzinfo=timezone.utc)
+        )
+        self.assertEqual(image.crop((0, 51, 47, 58)).getbbox()[1::2], (0, 7))
+        for box in ((47, 45, 50, 63), (63, 45, 66, 63),
+                    (89, 45, 101, 63)):
+            self.assertIsNone(image.crop(box).getbbox())
+
     def test_utc_digits_update_with_seconds(self):
         first = clockOLED.render_clock(
             datetime(2026, 1, 1, 12, 34, 56, tzinfo=timezone.utc)
@@ -81,12 +90,12 @@ class ClockOLEDTests(unittest.TestCase):
         on = clockOLED.render_clock(now)
         off = clockOLED.render_clock(now.replace(microsecond=500_000))
         next_on = clockOLED.render_clock(now + timedelta(seconds=1))
-        bolt = (60, 45, 94, 63)
+        bolt = (65, 45, 90, 63)
         self.assertIsNotNone(on.crop(bolt).getbbox())
         self.assertIsNone(off.crop(bolt).getbbox())
-        self.assertEqual(ImageChops.difference(on, off).getbbox(), (63, 50, 91, 62))
+        self.assertEqual(ImageChops.difference(on, off).getbbox(), (66, 50, 89, 62))
         self.assertEqual(on.crop(bolt).tobytes(), next_on.crop(bolt).tobytes())
-        for box in ((0, 52, 39, 57), (42, 45, 57, 63), (98, 45, 128, 63)):
+        for box in ((0, 51, 47, 58), (50, 45, 63, 63), (101, 45, 128, 63)):
             self.assertIsNotNone(on.crop(box).getbbox())
             self.assertEqual(on.crop(box).tobytes(), off.crop(box).tobytes())
 
@@ -94,11 +103,11 @@ class ClockOLEDTests(unittest.TestCase):
         image = clockOLED.render_clock(
             datetime(2026, 1, 1, 12, 34, 56, tzinfo=timezone.utc)
         )
-        for x in (41, 44, 49, 54, 57):
+        for x in (50, 53, 56, 59, 62):
             self.assertTrue(image.getpixel((x, 50)))
-        for x in (42, 45, 48, 50, 53, 56):
+        for x in (51, 54, 55, 57, 58, 61):
             self.assertFalse(image.getpixel((x, 50)))
-        self.assertTrue(all(image.getpixel((49, y)) for y in range(49, 63)))
+        self.assertTrue(all(image.getpixel((56, y)) for y in range(49, 63)))
 
 
 class RTCSyncAlertTests(unittest.TestCase):
