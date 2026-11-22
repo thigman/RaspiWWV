@@ -42,6 +42,28 @@ SMALL_FONT = {
     "U": ("101", "101", "101", "101", "111"),
 }
 
+LOCAL_FONT = {
+    " ": ("0",) * 7,
+    ":": ("0", "0", "1", "0", "1", "0", "0"),
+    "0": ("0110", "1001", "1001", "1001", "1001", "1001", "0110"),
+    "1": ("0100", "1100", "0100", "0100", "0100", "0100", "1110"),
+    "2": ("1110", "0001", "0001", "0110", "1000", "1000", "1111"),
+    "3": ("1110", "0001", "0001", "0110", "0001", "0001", "1110"),
+    "4": ("1001", "1001", "1001", "1111", "0001", "0001", "0001"),
+    "5": ("1111", "1000", "1000", "1110", "0001", "0001", "1110"),
+    "6": ("0111", "1000", "1000", "1110", "1001", "1001", "0110"),
+    "7": ("1111", "0001", "0010", "0010", "0100", "0100", "0100"),
+    "8": ("0110", "1001", "1001", "0110", "1001", "1001", "0110"),
+    "9": ("0110", "1001", "1001", "0111", "0001", "0001", "1110"),
+    "A": ("0110", "1001", "1001", "1111", "1001", "1001", "1001"),
+    "C": ("0111", "1000", "1000", "1000", "1000", "1000", "0111"),
+    "E": ("1111", "1000", "1000", "1110", "1000", "1000", "1111"),
+    "I": ("1",) * 7,
+    "M": ("1001", "1111", "1111", "1001", "1001", "1001", "1001"),
+    "O": ("0110", "1001", "1001", "1001", "1001", "1001", "0110"),
+    "T": ("1111", "0110", "0110", "0110", "0110", "0110", "0110"),
+}
+
 SEGMENTS = {
     "0": "abcdef",
     "1": "bc",
@@ -126,6 +148,20 @@ def draw_small_text(draw, text, x, y):
         x += 4
 
 
+def local_text_width(text):
+    return sum(len(LOCAL_FONT[char][0]) + 1 for char in text) - 1
+
+
+def draw_local_text(draw, text, x, y):
+    for char in text:
+        glyph = LOCAL_FONT[char]
+        for row, pixels in enumerate(glyph):
+            for col, pixel in enumerate(pixels):
+                if pixel == "1":
+                    draw.point((x + col, y + row), fill="white")
+        x += len(glyph[0]) + 1
+
+
 def draw_led_time(draw, text, x, y):
     for char in text:
         if char == ":":
@@ -154,12 +190,12 @@ def render_clock(now):
 
     colorado = now.astimezone(COLORADO).strftime("CO TIME: %H:%M")
     california = now.astimezone(CALIFORNIA).strftime("CA TIME: %H:%M")
-    draw_small_text(draw, colorado, 0, 2)
-    draw_small_text(draw, california, 128 - (len(california) * 4 - 1), 2)
+    draw_local_text(draw, colorado, 0, 1)
+    draw_local_text(draw, california, 128 - local_text_width(california), 1)
 
     utc = now.astimezone(timezone.utc)
-    draw_small_text(draw, "UTC:", 3, 28)
-    draw_led_time(draw, utc.strftime("%H:%M:%S"), 25, 18)
+    draw_small_text(draw, "UTC:", 3, 25)
+    draw_led_time(draw, utc.strftime("%H:%M:%S"), 25, 15)
     date = utc.strftime("%Y-%m-%d")
     draw_small_text(draw, date, 0, 52)
 
